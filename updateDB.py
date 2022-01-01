@@ -22,8 +22,10 @@ import time
 import hashlib
 import re
 
-INTERVAL_MINUTES=40 #The update can be run every 30 minutes, with a 10 minute overlap in time
-
+INTERVAL_MINUTES=400 #The update can be run every 30 minutes, with a 10 minute overlap in time
+DBHOST = os.environ.get('DBHOST')
+DBUSER = os.environ.get('DBUSER')
+DBPW = os.environ.get('DBPW')
 
 def create_database(cursor, db_name):
     try:
@@ -34,13 +36,11 @@ def create_database(cursor, db_name):
 
 
 def connect_db():
-    dbhost = os.environ.get('DBHOST')
-    dbuser = os.environ.get('DBUSER')
-    dbpw = os.environ.get('DBPW')
+
 
     try:
-        connection = mysql.connector.connect(user=dbuser, password=dbpw,
-                                      host=dbhost)
+        connection = mysql.connector.connect(user=DBUSER, password=DBPW,
+                                      host=DBHOST)
         return connection
     except:
         return None
@@ -150,83 +150,87 @@ def populate_alerts(db, cursor, records, master_id, link_id, create_time):
     db.commit()
 
 
+def update_hlsanalyzer_content(apikey, apihost):
 
-db = connect_db()
-if db is None:
-    raise Exception("Could not connect to database!")
-else:
-    print("Connected.")
-
-cursor = db.cursor()
-
-
-apikey = os.environ.get('APIKEY')
-apihost = "https://staging.hlsanalyzer.com"
-
-if apikey is None:
-    raise Exception("API Key not found!")
-
-db_name = apikey.replace("-","")
-
-try:
-    cursor.execute("USE {}".format(db_name))
-except mysql.connector.Error as err:
-    print("Database {} does not exists.".format(db_name))
-    if err.errno == errorcode.ER_BAD_DB_ERROR:
-        create_database(cursor, db_name)
-        print("Database {} created successfully.".format(db_name))
-        db.database = db_name
+    db = connect_db()
+    if db is None:
+        raise Exception("Could not connect to database!")
     else:
-        print(err)
+        print("Connected.")
 
-TABLES = define_tables()
+    cursor = db.cursor()
 
-for table_name in TABLES:
-    table_description = TABLES[table_name]
+
+    if apikey is None:
+        raise Exception("API Key not found!")
+
+    db_name = apikey.replace("-","")
+
     try:
-        print("Creating table {}: ".format(table_name), end='')
-        cursor.execute(table_description)
+        cursor.execute("USE {}".format(db_name))
     except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-            print("already exists.")
+        print("Database {} does not exists.".format(db_name))
+        if err.errno == errorcode.ER_BAD_DB_ERROR:
+            create_database(cursor, db_name)
+            print("Database {} created successfully.".format(db_name))
+            db.database = db_name
         else:
-            print(err.msg)
-    else:
-        print("OK")
+            print(err)
 
-create_time = int(time.time())
-duration = INTERVAL_MINUTES*60
-result = utils.get_all_status(apihost, apikey)
+    TABLES = define_tables()
 
-if result is not None:
-    #Traverse all HLS links being monitored.
-    # Each link can be either a master playlist with variants, or a single Media playlist
-    variant_list = []
-    for hls_link in result['status'].keys():
-        link_status = result['status'][hls_link]
-        has_variants = False
-        timestamp = link_status["Timestamp"]
-        cur_id = link_status["LinkID"]
-
-        if 'Variants' in link_status:
-            print("MASTER [%s]" %(hls_link))
-            master_id = cur_id
-            variant_status = result['status'][hls_link]['Variants']
-            for variant in variant_status.keys():
-                print("|-- Variant [%s] "%(variant))
-                variant_id = variant_status[variant]["LinkID"]
-                variant_list.append( (master_id, variant_id, timestamp))
+    for table_name in TABLES:
+        table_description = TABLES[table_name]
+        try:
+            print("Creating table {}: ".format(table_name), end='')
+            cursor.execute(table_description)
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+                print("already exists.")
+            else:
+                print(err.msg)
         else:
-            print("SINGLE MEDIA [%s]" %(hls_link))
-            variant_list.append((None, cur_id, timestamp))
+            print("OK")
 
-    for (master_id, cur_id, timestamp) in variant_list:
-        records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="scte35records")
-        populate_scte35(db, cursor, records, master_id, cur_id, create_time)
-        records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="alertrecords")
-        populate_alerts(db, cursor, records, master_id, cur_id, create_time)
+    create_time = int(time.time())
+    duration = INTERVAL_MINUTES*60
+    result = utils.get_all_status(apihost, apikey)
+
+    if result is not None:
+        #Traverse all HLS links being monitored.
+        # Each link can be either a master playlist with variants, or a single Media playlist
+        variant_list = []
+        for hls_link in result['status'].keys():
+            link_status = result['status'][hls_link]
+            has_variants = False
+            timestamp = link_status["Timestamp"]
+            cur_id = link_status["LinkID"]
+
+            if 'Variants' in link_status:
+                print("MASTER [%s]" %(hls_link))
+                master_id = cur_id
+                variant_status = result['status'][hls_link]['Variants']
+                for variant in variant_status.keys():
+                    print("|-- Variant [%s] "%(variant))
+                    variant_id = variant_status[variant]["LinkID"]
+                    variant_list.append( (master_id, variant_id, timestamp))
+            else:
+                print("SINGLE MEDIA [%s]" %(hls_link))
+                variant_list.append((None, cur_id, timestamp))
+
+        for (master_id, cur_id, timestamp) in variant_list:
+            records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="scte35records")
+            populate_scte35(db, cursor, records, master_id, cur_id, create_time)
+            records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="alertrecords")
+            populate_alerts(db, cursor, records, master_id, cur_id, create_time)
 
 
-print("Finished processing database ", db_name)
-cursor.close()
-db.close()
+    print("Finished processing database ", db_name)
+    cursor.close()
+    db.close()
+
+if __name__ == '__main__':
+    apikey = os.environ.get('APIKEY')
+    apihost = "https://staging.hlsanalyzer.com"
+
+    update_hlsanalyzer_content(apikey, apihost)
