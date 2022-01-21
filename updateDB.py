@@ -219,9 +219,9 @@ def update_hlsanalyzer_content(apikey, apihost):
                 variant_list.append((None, cur_id, timestamp))
 
         for (master_id, cur_id, timestamp) in variant_list:
-            records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="scte35records")
+            records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="stream/scte35cues")
             populate_scte35(db, cursor, records, master_id, cur_id, create_time)
-            records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="alertrecords")
+            records = utils.get_records(apihost, apikey, cur_id, timestamp - duration, timestamp, mode="stream/alertevents")
             populate_alerts(db, cursor, records, master_id, cur_id, create_time)
 
 
@@ -232,5 +232,4 @@ def update_hlsanalyzer_content(apikey, apihost):
 if __name__ == '__main__':
     apikey = os.environ.get('APIKEY')
     apihost = "https://staging.hlsanalyzer.com"
-
     update_hlsanalyzer_content(apikey, apihost)

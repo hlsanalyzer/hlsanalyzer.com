@@ -48,9 +48,9 @@ def get_all_errors():
 
             (error_count, warning_count, timestamp, linkid) = process_link_status(link_status)
             if int(float(error_count)) > 0:
-                utils.get_records(server, key, linkid, 0, timestamp, mode="errors")
+                utils.get_records(server, key, linkid, 0, timestamp, mode="stream/errors")
             if int(float(warning_count)) > 0:
-                utils.get_records(server, key, linkid, 0, timestamp, mode="warnings")
+                utils.get_records(server, key, linkid, 0, timestamp, mode="stream/warnings")
 
             if has_variants:
                 variant_status = result['status'][hls_link]['Variants']
@@ -58,9 +58,9 @@ def get_all_errors():
                     print("|-- Variant [%s] "%(variant))
                     (error_count, warning_count, timestamp, linkid) = process_link_status(variant_status[variant])
                     if float(error_count)> 0:
-                        utils.get_records(server, key, linkid, 0, timestamp, "errors")
+                        utils.get_records(server, key, linkid, 0, timestamp, "stream/errors")
                     if float(warning_count) > 0:
-                        utils.get_records(server, key, linkid, 0, timestamp, "warnings")
+                        utils.get_records(server, key, linkid, 0, timestamp, "stream/warnings")
 
 
 if __name__ == '__main__':

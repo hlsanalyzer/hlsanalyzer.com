@@ -34,8 +34,8 @@ def get_records(server, apikey, linkid, start, end, mode):
         return None
 
 
-def load_from_uri(uri, timeout=3):
-    request = Request(uri)
+def load_from_uri(uri, timeout=3, method = 'GET'):
+    request = Request(uri, method=method)
     https_sslv3_handler = HTTPSHandler(context=ssl.SSLContext())
     opener = build_opener(https_sslv3_handler)
     install_opener(opener)
