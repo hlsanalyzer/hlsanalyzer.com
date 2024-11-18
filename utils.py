@@ -20,7 +20,7 @@ def get_records(server, apikey, linkid, start, end, mode):
 
     try:
         url = "%s/api/%s?apikey=%s&start=%d&end=%d&linkid=%s" % (server, mode, apikey, start, end, linkid)
-        response = load_from_uri(url, timeout=3)
+        response = load_from_uri(url)
         data = json.loads(response)
         return data
 
@@ -33,8 +33,25 @@ def get_records(server, apikey, linkid, start, end, mode):
         print("Exception in reading records")
         return None
 
+def send_command(server, apikey, command, params=None, method='GET'):
+    try:
+        url = "%s/api/%s?apikey=%s" % (server, command, apikey)
+        if params is not None:
+            for cur in params:
+                url += "&%s" %(cur)
 
-def load_from_uri(uri, timeout=3, method = 'GET'):
+        print("URL = ", url)
+        response= load_from_uri(url, method, timeout=20)
+        responsej = json.loads(response)
+        return (200, responsej)
+    except urllib.error.HTTPError as e:
+        response = e.read().decode()
+        return (e.code, None)
+    except:
+        print("Exception in %s command" %(command))
+        return (500, None)
+
+def load_from_uri(uri, method = 'GET', timeout=5):
     request = Request(uri, method=method)
     https_sslv3_handler = HTTPSHandler(context=ssl.SSLContext())
     opener = build_opener(https_sslv3_handler)
@@ -61,7 +78,7 @@ def _read_python3x(resource):
 def get_all_status(server, key):
     try:
         url = "%s/api/status?apikey=%s" % (server, key)
-        response = load_from_uri(url, timeout=3)
+        response = load_from_uri(url)
         result_json = json.loads(response)
         return result_json
     except urllib.error.HTTPError as e:

@@ -29,10 +29,13 @@ def get_all_errors():
 
     #Replace with endpoing and API Key
     server = "https://staging.hlsanalyzer.com"
-    key = os.environ.get('APIKEY')
+    apikey = os.environ.get('APIKEY')
+    if not apikey:
+        print("Error: APIKEY environment variable is not set.")
+        return
 
     #Get the status for all the links
-    result = utils.get_all_status(server, key)
+    result = utils.get_all_status(server, apikey)
 
     if result is not None:
         #Traverse all HLS links being monitored.
@@ -48,9 +51,9 @@ def get_all_errors():
 
             (error_count, warning_count, timestamp, linkid) = process_link_status(link_status)
             if int(float(error_count)) > 0:
-                utils.get_records(server, key, linkid, 0, timestamp, mode="stream/errors")
+                utils.get_records(server, apikey, linkid, 0, timestamp, mode="stream/errors")
             if int(float(warning_count)) > 0:
-                utils.get_records(server, key, linkid, 0, timestamp, mode="stream/warnings")
+                utils.get_records(server, apikey, linkid, 0, timestamp, mode="stream/warnings")
 
             if has_variants:
                 variant_status = result['status'][hls_link]['Variants']
@@ -58,9 +61,9 @@ def get_all_errors():
                     print("|-- Variant [%s] "%(variant))
                     (error_count, warning_count, timestamp, linkid) = process_link_status(variant_status[variant])
                     if float(error_count)> 0:
-                        utils.get_records(server, key, linkid, 0, timestamp, "stream/errors")
+                        utils.get_records(server, apikey, linkid, 0, timestamp, "stream/errors")
                     if float(warning_count) > 0:
-                        utils.get_records(server, key, linkid, 0, timestamp, "stream/warnings")
+                        utils.get_records(server, apikey, linkid, 0, timestamp, "stream/warnings")
 
 
 if __name__ == '__main__':
