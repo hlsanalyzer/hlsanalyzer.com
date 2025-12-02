@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 # MIT License
 # Copyright (c) 2025 HLSAnalyzer.com
@@ -32,7 +32,13 @@ class CaptionMonitor:
         self.stream_url = stream_url
         self.duration = duration or Config.DEFAULT_MONITOR_DURATION
         self.linkid = linkid or f"CAPTION_MONITOR_{uuid.uuid4().hex[:8].upper()}"
-        self.server_url = Config.get_server_url()
+        
+        # Validate server URL
+        try:
+            self.server_url = Config.get_server_url()
+        except ValueError as e:
+            raise ValueError(str(e))
+            
         self.apikey = Config.API_KEY
         self.monitoring = False
         self.stream_added = False

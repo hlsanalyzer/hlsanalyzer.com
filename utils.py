@@ -1,5 +1,3 @@
-#!/usr/local/bin/python3
-
 # MIT License
 # Copyright (c) 2021-2025 HLSAnalyzer.com
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR

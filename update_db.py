@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 # MIT License
 # Copyright (c) 2021-2025 HLSAnalyzer.com
@@ -256,6 +256,15 @@ def update_hlsanalyzer_content(apikey, apihost):
     db.close()
 
 if __name__ == '__main__':
+    try:
+        apihost = Config.get_server_url()
+    except ValueError as e:
+        print(str(e))
+        exit(1)
+        
     apikey = Config.API_KEY
-    apihost = Config.get_server_url()
+    if not apikey:
+        print("Error: HLSANALYZER_APIKEY environment variable is not set.")
+        exit(1)
+        
     update_hlsanalyzer_content(apikey, apihost)

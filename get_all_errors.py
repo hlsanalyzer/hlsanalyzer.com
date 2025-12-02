@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 # MIT License
 # Copyright (c) 2021-2025 HLSAnalyzer.com
@@ -28,7 +28,12 @@ def process_link_status(link_status):
 
 def get_all_errors():
 
-    server = Config.get_server_url()
+    try:
+        server = Config.get_server_url()
+    except ValueError as e:
+        print(str(e))
+        return
+        
     apikey = Config.API_KEY
     if not apikey:
         print("Error: HLSANALYZER_APIKEY environment variable is not set.")

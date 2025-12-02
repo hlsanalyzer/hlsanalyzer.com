@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Configuration module for HLSAnalyzer API client
 """
@@ -10,7 +8,7 @@ class Config:
     """Configuration settings for HLSAnalyzer API operations"""
     
     # API Configuration
-    SERVER_URL = os.environ.get('HLSANALYZER_SERVER', "https://hlsanalyzer.com")
+    SERVER_URL = os.environ.get('HLSANALYZER_SERVER')
     API_KEY = os.environ.get('HLSANALYZER_APIKEY')
     DEFAULT_TIMEOUT = 20
     SEGMENT_DOWNLOAD_TIMEOUT = 5
@@ -35,7 +33,9 @@ class Config:
     
     @classmethod
     def get_server_url(cls):
-        """Get the server URL"""
+        """Get the server URL with validation"""
+        if not cls.SERVER_URL:
+            raise ValueError("Error: HLSANALYZER_SERVER environment variable is not set.")
         return cls.SERVER_URL
     
     @classmethod

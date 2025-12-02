@@ -8,13 +8,11 @@ The monitoring service has a browser-based interface along with an HTTP-based AP
 
 ### Environment Variables
 
-All scripts require the following environment variable:
+All scripts require the following environment variables:
 
 **Required:**
 - `HLSANALYZER_APIKEY`: Your HLSAnalyzer API key
-
-**Optional:**
-- `HLSANALYZER_SERVER`: Server URL (default: https://hlsanalyzer.com)
+- `HLSANALYZER_SERVER`: Server URL (e.g., https://hlsanalyzer.com)
 
 ### Setting Environment Variables
 
@@ -22,10 +20,11 @@ All scripts require the following environment variable:
 ```bash
 # Set for current session
 export HLSANALYZER_APIKEY="your-api-key-here"
-export HLSANALYZER_SERVER="https://hlsanalyzer.com"  # optional
+export HLSANALYZER_SERVER="https://hlsanalyzer.com"
 
 # Set permanently (add to ~/.bashrc, ~/.zshrc, or ~/.profile)
 echo 'export HLSANALYZER_APIKEY="your-api-key-here"' >> ~/.bashrc
+echo 'export HLSANALYZER_SERVER="https://hlsanalyzer.com"' >> ~/.bashrc
 ```
 
 #### Windows (Command Prompt)
@@ -36,6 +35,7 @@ set HLSANALYZER_SERVER=https://hlsanalyzer.com
 
 # Set permanently
 setx HLSANALYZER_APIKEY "your-api-key-here"
+setx HLSANALYZER_SERVER "https://hlsanalyzer.com"
 ```
 
 #### Windows (PowerShell)
@@ -46,6 +46,7 @@ $env:HLSANALYZER_SERVER="https://hlsanalyzer.com"
 
 # Set permanently
 [Environment]::SetEnvironmentVariable("HLSANALYZER_APIKEY", "your-api-key-here", "User")
+[Environment]::SetEnvironmentVariable("HLSANALYZER_SERVER", "https://hlsanalyzer.com", "User")
 ```
 
 ### Installation
@@ -73,8 +74,6 @@ python add_remove.py add https://example.com/stream.m3u8 --linkid MY_STREAM
 # Remove a stream
 python add_remove.py remove https://example.com/stream.m3u8
 
-# Test add/remove cycle with default test stream
-python add_remove.py test
 ```
 
 #### Features:
@@ -177,7 +176,7 @@ Settings can be modified in `config.py`:
 
 ```python
 # API Configuration
-SERVER_URL = os.environ.get('HLSANALYZER_SERVER', "https://hlsanalyzer.com")
+SERVER_URL = os.environ.get('HLSANALYZER_SERVER')
 API_KEY = os.environ.get('HLSANALYZER_APIKEY')
 
 # SSE Configuration

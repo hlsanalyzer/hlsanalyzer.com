@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 # MIT License
 # Copyright (c) 2021-2025 HLSAnalyzer.com
@@ -19,7 +19,12 @@ from config import Config
 
 def add_stream(stream_url, linkid=None):
     """Add a stream to HLS monitoring"""
-    server = Config.get_server_url()
+    try:
+        server = Config.get_server_url()
+    except ValueError as e:
+        print(str(e))
+        return False
+        
     apikey = Config.API_KEY
     if not apikey:
         print("Error: HLSANALYZER_APIKEY environment variable is not set.")
@@ -43,7 +48,12 @@ def add_stream(stream_url, linkid=None):
 
 def remove_stream(stream_url):
     """Remove a stream from HLS monitoring"""
-    server = Config.get_server_url()
+    try:
+        server = Config.get_server_url()
+    except ValueError as e:
+        print(str(e))
+        return False
+        
     apikey = Config.API_KEY
     if not apikey:
         print("Error: HLSANALYZER_APIKEY environment variable is not set.")
