@@ -28,10 +28,11 @@ import utils
 class CaptionMonitor:
     """Monitor HLS stream for 608 captions using SSE"""
     
-    def __init__(self, stream_url, duration=None, linkid=None):
+    def __init__(self, stream_url, duration=None, linkid=None, debug=False):
         self.stream_url = stream_url
         self.duration = duration or Config.DEFAULT_MONITOR_DURATION
         self.linkid = linkid or f"CAPTION_MONITOR_{uuid.uuid4().hex[:8].upper()}"
+        self.debug = debug
         
         # Validate server URL
         try:
@@ -161,59 +162,97 @@ class CaptionMonitor:
     def process_caption_event(self, event):
         """Process and display caption event"""
         try:
+            if self.debug:
+                print(f"\n🔍 DEBUG - Raw SSE Event:")
+                print(f"  Event Type: {event.event}")
+                print(f"  Event Data: {event.data}")
+                print(f"  Event ID: {getattr(event, 'id', 'None')}")
+                print(f"  Retry: {getattr(event, 'retry', 'None')}")
+            
             if event.event == 'message':
                 try:
                     import json
                     data = json.loads(event.data)
                     
+                    if self.debug:
+                        print(f"\n🔍 DEBUG - Parsed JSON Data:")
+                        print(f"  Full Message: {data}")
+                        print(f"  Keys: {list(data.keys())}")
+                    
                     if data.get('status') == 'connected':
                         print(f"🔗 Connected to linkid: {data.get('linkid')}")
+                        if self.debug:
+                            print(f"🔍 DEBUG - Connection established for monitoring")
                     elif data.get('status') == 'no_captions_yet':
+                        if self.debug:
+                            print(f"🔍 DEBUG - No captions available yet, waiting...")
                         pass  # Don't spam with no captions messages
-                    elif 'initial_captions' in data:
-                        # Initial captions when catching up
-                        captions = data['initial_captions']
+                    elif 'captions' in data:
+                        # Unified caption data format
+                        captions = data['captions']
+                        if self.debug:
+                            print(f"\n🔍 DEBUG - Processing captions:")
+                            print(f"  Caption count: {len(captions)}")
+                            print(f"  Total count: {data.get('total_count', 'unknown')}")
+                            print(f"  Timestamp: {data.get('timestamp', 'unknown')}")
                         for caption in captions:
                             content = caption.get('content', '').strip()
                             if content:
-                                print(content)
-                    elif 'new_captions' in data:
-                        # New real-time captions
-                        captions = data['new_captions']
-                        for caption in captions:
-                            content = caption.get('content', '').strip()
-                            if content:
+                                if self.debug:
+                                    print(f"\n🔍 DEBUG - Caption details:")
+                                    print(f"  Timestamp: {caption.get('timestamp', 'unknown')}")
+                                    print(f"  Sequence: {caption.get('sequence', 'unknown')}")
+                                    print(f"  Duration: {caption.get('duration', 'unknown')}")
+                                    print(f"  Content length: {len(content)} chars")
                                 print(content)
                     elif 'content' in data:
                         # Single caption content
                         caption_content = data['content'].strip()
                         if caption_content:
+                            if self.debug:
+                                print(f"\n🔍 DEBUG - Single content message:")
+                                print(f"  Content length: {len(caption_content)} chars")
                             print(caption_content)
                     else:
                         # Print any other message types for debugging
                         print(f"📝 SSE Message: {data}")
                         
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     # If it's not JSON, print as-is
+                    if self.debug:
+                        print(f"🔍 DEBUG - JSON decode error: {e}")
                     print(f"📝 Raw message: {event.data}")
                     
             elif event.event == 'caption':
                 caption_data = event.data.strip()
                 if caption_data:
+                    if self.debug:
+                        print(f"\n🔍 DEBUG - Direct caption event:")
+                        print(f"  Data length: {len(caption_data)} chars")
                     print(caption_data)
                 
             elif event.event == 'heartbeat':
                 # Optional: show heartbeat for connection health
+                if self.debug:
+                    print(f"💓 DEBUG - Heartbeat received: {event.data}")
                 pass
                 
             elif event.event == 'error':
                 print(f"⚠️ Caption error: {event.data}")
+                if self.debug:
+                    print(f"🔍 DEBUG - Error event details: {event.data}")
             
             else:
                 print(f"❓ Unknown event type: {event.event} - Data: {event.data}")
+                if self.debug:
+                    print(f"🔍 DEBUG - Unhandled event type received")
                 
         except Exception as e:
             print(f"⚠️ Error processing caption event: {e}")
+            if self.debug:
+                import traceback
+                print(f"🔍 DEBUG - Exception traceback:")
+                traceback.print_exc()
     
     def monitor_captions(self):
         """Main caption monitoring loop"""
@@ -314,6 +353,12 @@ Examples:
         help='Custom link ID for the stream (optional)'
     )
     
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug output to see SSE message processing in action'
+    )
+    
     args = parser.parse_args()
     
     # Set up signal handler for graceful shutdown
@@ -325,7 +370,8 @@ Examples:
         monitor_instance = CaptionMonitor(
             stream_url=args.stream_url,
             duration=args.time,
-            linkid=args.linkid
+            linkid=args.linkid,
+            debug=args.debug
         )
         
         # Add stream to monitoring
