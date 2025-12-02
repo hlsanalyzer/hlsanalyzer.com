@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
 # MIT License
-# Copyright (c) 2021 HLSAnalyzer.com
+# Copyright (c) 2021-2025 HLSAnalyzer.com
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -15,6 +15,7 @@ import json
 from urllib.request import Request, HTTPSHandler, build_opener, install_opener
 import ssl
 import os
+from config import Config
 
 def get_records(server, apikey, linkid, start, end, mode):
 
@@ -29,8 +30,11 @@ def get_records(server, apikey, linkid, start, end, mode):
         print(e.code)
         print(e.read())
         return None
-    except:
-        print("Exception in reading records")
+    except (json.JSONDecodeError, ValueError, ConnectionError) as e:
+        print(f"Exception in reading records: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error in reading records: {e}")
         return None
 
 def send_command(server, apikey, command, params=None, method='GET'):
@@ -41,17 +45,20 @@ def send_command(server, apikey, command, params=None, method='GET'):
                 url += "&%s" %(cur)
 
         print("URL = ", url)
-        response= load_from_uri(url, method, timeout=20)
+        response= load_from_uri(url, method, timeout=Config.DEFAULT_TIMEOUT)
         responsej = json.loads(response)
         return (200, responsej)
     except urllib.error.HTTPError as e:
         response = e.read().decode()
         return (e.code, None)
-    except:
-        print("Exception in %s command" %(command))
+    except (json.JSONDecodeError, ValueError, ConnectionError) as e:
+        print(f"Exception in {command} command: {e}")
+        return (500, None)
+    except Exception as e:
+        print(f"Unexpected error in {command} command: {e}")
         return (500, None)
 
-def load_from_uri(uri, method = 'GET', timeout=5):
+def load_from_uri(uri, method = 'GET', timeout=Config.SEGMENT_DOWNLOAD_TIMEOUT):
     request = Request(uri, method=method)
     https_sslv3_handler = HTTPSHandler(context=ssl.SSLContext())
     opener = build_opener(https_sslv3_handler)
@@ -86,6 +93,9 @@ def get_all_status(server, key):
         print(e.code)
         print(e.read().decode())
         return None
-    except:
-        print("Exception in reading status")
+    except (json.JSONDecodeError, ValueError, ConnectionError) as e:
+        print(f"Exception in reading status: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error in reading status: {e}")
         return None

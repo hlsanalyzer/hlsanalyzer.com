@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
 # MIT License
-# Copyright (c) 2021 HLSAnalyzer.com
+# Copyright (c) 2021-2025 HLSAnalyzer.com
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,18 +21,28 @@ import utils
 import time
 import hashlib
 import re
+from config import Config
 
-INTERVAL_MINUTES=400 #The update can be run every 30 minutes, with a 10 minute overlap in time
-DBHOST = os.environ.get('DBHOST')
-DBUSER = os.environ.get('DBUSER')
-DBPW = os.environ.get('DBPW')
+INTERVAL_MINUTES = Config.INTERVAL_MINUTES
+DBHOST = Config.DB_HOST
+DBUSER = Config.DB_USER
+DBPW = Config.DB_PASSWORD
 
 def create_database(cursor, db_name):
+    # Validate database name to prevent SQL injection
+    import re
+    if not re.match(r'^[a-zA-Z0-9_]+$', db_name):
+        raise ValueError(f"Invalid database name: {db_name}. Only alphanumeric characters and underscores allowed.")
+    
+    if len(db_name) > Config.MAX_DB_NAME_LENGTH:
+        raise ValueError(f"Database name too long: {db_name}. Maximum 64 characters allowed.")
+    
     try:
         cursor.execute(
             "CREATE DATABASE {} DEFAULT CHARACTER SET 'utf8'".format(db_name))
     except mysql.connector.Error as err:
         print("Failed creating database: {}".format(err))
+        raise
 
 
 def connect_db():
@@ -42,7 +52,11 @@ def connect_db():
         connection = mysql.connector.connect(user=DBUSER, password=DBPW,
                                       host=DBHOST)
         return connection
-    except:
+    except mysql.connector.Error as e:
+        print(f"Database connection error: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error connecting to database: {e}")
         return None
 
 def define_tables():
@@ -163,8 +177,20 @@ def update_hlsanalyzer_content(apikey, apihost):
 
     if apikey is None:
         raise Exception("API Key not found!")
-
+    
+    # Validate API key format
+    import re
+    if not re.match(r'^[a-zA-Z0-9\-]+$', apikey):
+        raise ValueError(f"Invalid API key format: contains invalid characters")
+    
     db_name = apikey.replace("-","")
+    
+    # Validate resulting database name
+    if not re.match(r'^[a-zA-Z0-9_]+$', db_name):
+        raise ValueError(f"API key generates invalid database name: {db_name}")
+    
+    if len(db_name) > Config.MAX_DB_NAME_LENGTH:
+        raise ValueError(f"API key generates database name too long: {db_name}")
 
     try:
         cursor.execute("USE {}".format(db_name))
@@ -230,6 +256,6 @@ def update_hlsanalyzer_content(apikey, apihost):
     db.close()
 
 if __name__ == '__main__':
-    apikey = os.environ.get('APIKEY')
-    apihost = "https://staging.hlsanalyzer.com"
+    apikey = Config.API_KEY
+    apihost = Config.get_server_url()
     update_hlsanalyzer_content(apikey, apihost)
